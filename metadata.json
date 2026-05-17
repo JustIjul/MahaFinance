@@ -1,0 +1,6 @@
+{
+  "name": "MahaFinance - Keuangan Mahasiswa",
+  "description": "Aplikasi pencatatan keuangan interaktif untuk mahasiswa dengan pelacakan harian hingga tahunan, visualisasi diagram, dan ekspor Excel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

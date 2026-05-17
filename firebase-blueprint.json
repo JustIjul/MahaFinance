@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "amount": { "type": "number" },
+        "source": { "type": "string" },
+        "storage": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "type", "amount", "source", "storage", "date"]
+    },
+    "UserConfig": {
+      "title": "User Configuration",
+      "description": "User specific categories and storage types",
+      "type": "object",
+      "properties": {
+        "storageTypes": { "type": "array", "items": { "type": "string" } },
+        "incomeCats": { "type": "array", "items": { "type": "string" } },
+        "expenseCats": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["storageTypes", "incomeCats", "expenseCats"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "User's financial transactions"
+    },
+    "users/{userId}/config/main": {
+      "schema": "UserConfig",
+      "description": "User's custom settings for categories and storage"
+    }
+  }
+}

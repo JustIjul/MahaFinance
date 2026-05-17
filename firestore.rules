@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Entity Validations ---
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'type', 'amount', 'source', 'storage', 'date']) &&
+             data.keys().size() <= 7 && // Including optional notes
+             data.id is string && data.id.size() <= 128 &&
+             data.type in ['income', 'expense'] &&
+             data.amount is number && data.amount >= 0 &&
+             data.source is string && data.source.size() <= 100 &&
+             data.storage is string && data.storage.size() <= 100 &&
+             data.date is string && data.date.size() <= 50 &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    function isValidConfig(data) {
+      return data.keys().hasAll(['storageTypes', 'incomeCats', 'expenseCats']) &&
+             data.keys().size() == 3 &&
+             data.storageTypes is list && data.storageTypes.size() <= 50 &&
+             data.incomeCats is list && data.incomeCats.size() <= 50 &&
+             data.expenseCats is list && data.expenseCats.size() <= 50;
+    }
+
+    // --- Path Assignments ---
+
+    match /users/{userId} {
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidTransaction(incoming());
+        allow update: if isOwner(userId) && 
+                      isValidTransaction(incoming()) &&
+                      incoming().id == existing().id &&
+                      incoming().type == existing().type && // Immutable type
+                      (incoming().diff(existing()).affectedKeys().hasOnly(['amount', 'source', 'storage', 'date', 'notes']));
+        allow delete: if isOwner(userId);
+      }
+
+      match /config/main {
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidConfig(incoming());
+        allow update: if isOwner(userId) && isValidConfig(incoming());
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
